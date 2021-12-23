@@ -4,6 +4,7 @@ const fs = require('fs');
 
 // grabs secrets from .env file and creates variables for them
 const dotenv = require('dotenv');
+const { registerUser, deleteUser } = require('./utils/database');
 dotenv.config();
 
 token = process.env.DISCORD_TOKEN;
@@ -11,7 +12,7 @@ client_id = process.env.CLIENT_ID;
 guild_id = process.env.GUILD_ID;
 
 // Create a new client instance
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -45,6 +46,23 @@ client.on('interactionCreate', async interaction => {
 	}
 });
 
+client.on('interactionCreate', interaction => {
+	if (!interaction.isButton()) return;
+
+	if (!(interaction.message.interaction.user.id === interaction.user.id)) {
+		return interaction.reply({ content: 'There was an error validating the user after clicking the button, please try again!', ephemeral: true });
+	}
+
+	if (interaction.customId === "register") {
+		registerUser(interaction.user.id)
+		return interaction.reply({ content: 'Successfully registered user!', ephemeral: true });
+	} else if (interaction.customId === "delete") {
+		deleteUser(interaction.user.id)
+		return interaction.reply({ content: 'Successfully deleted user!', ephemeral: true });
+	} else if (interaction.customId === "cancel") {
+		return interaction.reply({ content: 'Okay going away now...', ephemeral: true });
+	}
+});
 
 // Login to Discord with your client's token
 client.login(token);
